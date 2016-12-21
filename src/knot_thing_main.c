@@ -341,7 +341,7 @@ int verify_events(knot_msg_data *data)
 	 * changed according to the events registered.
 	 */
 
-	if ((data_item_read(evt_sensor_id, data) < 0)
+	if ((data_item_read(evt_sensor_id, data) < 0))
 	    return -1;
 
 	if ((evt_sensor_id >= KNOT_THING_DATA_MAX) || item_is_unregistered(evt_sensor_id) == 0) {
