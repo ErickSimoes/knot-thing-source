@@ -20,18 +20,12 @@
 
 // TODO: normalize all returning error codes
 
-
 const char KNOT_THING_EMPTY_ITEM[] PROGMEM = { "EMPTY ITEM" };
 
 static uint8_t last_id; /* Last registered id */
 static uint8_t evt_sensor_id;
 
-/* Control the upper lower mensage flow */
-static uint8_t lower_flag[KNOT_THING_DATA_MAX];
-static uint8_t upper_flag[KNOT_THING_DATA_MAX];
-
-
-static struct _data_items{
+static struct _data_items {
 	// schema values
 	uint8_t			value_type;	// KNOT_VALUE_TYPE_* (int, float, bool, raw)
 	uint8_t			unit;		// KNOT_UNIT_*
@@ -44,6 +38,9 @@ static struct _data_items{
 	knot_config		config;	// Flags indicating when data will be sent
 	// time values
 	uint32_t		last_timeout;	// Stores the last time the data was sent
+	// control the upper lower mensage flow
+	uint8_t lower_flag[KNOT_THING_DATA_MAX];
+	uint8_t upper_flag[KNOT_THING_DATA_MAX];
 	// Data read/write functions
 	knot_data_functions	functions;
 } data_items[KNOT_THING_DATA_MAX];
@@ -79,8 +76,8 @@ static void reset_data_items(void)
 		pdata->functions.int_f.read			= NULL;
 		pdata->functions.int_f.write			= NULL;
 
-		lower_flag[count] = 0;
-		upper_flag[count] = 0;
+		pdata->lower_flag[count]			= 0;
+		pdata->upper_flag[count]			= 0;
 	}
 }
 
@@ -391,19 +388,19 @@ static int verify_events(knot_msg_data *data)
 		break;
 	case KNOT_VALUE_TYPE_INT:
 		// TODO: add multiplier to comparison
-		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value && lower_flag[evt_sensor_id] == 0) {
+		if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.lower_limit.val_i.value && data_items[evt_sensor_id].lower_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 0;
-			lower_flag[evt_sensor_id] = 1;
-		} else if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.upper_limit.val_i.value && upper_flag[evt_sensor_id] == 0) {
+			data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 0;
+			data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 1;
+		} else if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.upper_limit.val_i.value && data_items[evt_sensor_id].upper_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 1;
-			lower_flag[evt_sensor_id] = 0;
+			data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 1;
+			data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 0;
 		} else {
 			if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.upper_limit.val_i.value)
-				upper_flag[evt_sensor_id] = 0;
+				data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 0;
 			if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.lower_limit.val_i.value)
-				lower_flag[evt_sensor_id] = 0;
+				data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 0;
 		}
 
 		if (data->payload.values.val_i.value != data_items[evt_sensor_id].last_data.val_i.value)
@@ -414,19 +411,19 @@ static int verify_events(knot_msg_data *data)
 		break;
 	case KNOT_VALUE_TYPE_FLOAT:
 		// TODO: add multiplier and decimal part to comparison
-		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int && lower_flag[evt_sensor_id] == 0) {
+		if (data->payload.values.val_f.value_int < data_items[evt_sensor_id].config.lower_limit.val_f.value_int && data_items[evt_sensor_id].lower_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_LOWER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 0;
-			lower_flag[evt_sensor_id] = 1;
-		} else if (data->payload.values.val_f.value_int > data_items[evt_sensor_id].config.upper_limit.val_f.value_int && upper_flag[evt_sensor_id] == 0) {
+			data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 0;
+			data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 1;
+		} else if (data->payload.values.val_f.value_int > data_items[evt_sensor_id].config.upper_limit.val_f.value_int && data_items[evt_sensor_id].upper_flag[evt_sensor_id] == 0) {
 			comparison |= (KNOT_EVT_FLAG_UPPER_THRESHOLD & data_items[evt_sensor_id].config.event_flags);
-			upper_flag[evt_sensor_id] = 1;
-			lower_flag[evt_sensor_id] = 0;
+			data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 1;
+			data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 0;
 		} else {
 			if (data->payload.values.val_i.value < data_items[evt_sensor_id].config.upper_limit.val_i.value)
-				upper_flag[evt_sensor_id] = 0;
+				data_items[evt_sensor_id].upper_flag[evt_sensor_id] = 0;
 			if (data->payload.values.val_i.value > data_items[evt_sensor_id].config.lower_limit.val_i.value)
-				lower_flag[evt_sensor_id] = 0;
+				data_items[evt_sensor_id].lower_flag[evt_sensor_id] = 0;
 		}
 		if (data->payload.values.val_f.value_int != data_items[evt_sensor_id].last_data.val_f.value_int)
 			comparison |= (KNOT_EVT_FLAG_CHANGE & data_items[evt_sensor_id].config.event_flags);
